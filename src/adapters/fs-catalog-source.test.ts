@@ -25,7 +25,7 @@ describe("FsCatalogSource", () => {
     const source = new FsCatalogSource(rootDir);
     await expect(source.listChallenges()).resolves.toEqual([]);
     await expect(source.listSchedules()).resolves.toEqual([]);
-    await expect(source.readAttribution()).resolves.toBeUndefined();
+    await expect(source.readAttribution()).resolves.toEqual({ location: "ATTRIBUTION.md", text: undefined });
   });
 
   it("lists challenge directories with nested files and parsed metadata", async () => {
@@ -38,6 +38,8 @@ describe("FsCatalogSource", () => {
     expect(challenges).toEqual([
       {
         directoryName: "two-sum",
+        location: "challenges/two-sum",
+        metadataLocation: "challenges/two-sum/metadata.json",
         metadata: { kind: "parsed", value: { id: "two-sum" } },
         files: ["metadata.json", "starter/solution.ts"],
       },
@@ -62,11 +64,16 @@ describe("FsCatalogSource", () => {
 
     const schedules = await new FsCatalogSource(rootDir).listSchedules();
 
-    expect(schedules).toEqual([{ fileName: "2026.json", content: { kind: "parsed", value: [] } }]);
+    expect(schedules).toEqual([
+      { fileName: "2026.json", location: "schedule/2026.json", content: { kind: "parsed", value: [] } },
+    ]);
   });
 
   it("reads ATTRIBUTION.md", async () => {
     await writeRepoFile("ATTRIBUTION.md", "# Attribution");
-    await expect(new FsCatalogSource(rootDir).readAttribution()).resolves.toBe("# Attribution");
+    await expect(new FsCatalogSource(rootDir).readAttribution()).resolves.toEqual({
+      location: "ATTRIBUTION.md",
+      text: "# Attribution",
+    });
   });
 });

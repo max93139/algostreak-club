@@ -2,6 +2,7 @@ import type { Dirent } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { CatalogSource, RawChallenge, RawJson, RawSchedule } from "../application/catalog-source.ts";
+import type { Attribution } from "../domain/catalog.ts";
 
 const CHALLENGES_DIR = "challenges";
 const SCHEDULE_DIR = "schedule";
@@ -19,35 +20,42 @@ export class FsCatalogSource implements CatalogSource {
   async listChallenges(): Promise<readonly RawChallenge[]> {
     const challengesDir = path.join(this.#rootDir, CHALLENGES_DIR);
     const names = await listEntries(challengesDir, (entry) => entry.isDirectory());
-    return Promise.all(names.map((name) => readChallenge(path.join(challengesDir, name), name)));
+    return Promise.all(names.map((name) => readChallenge(challengesDir, name)));
   }
 
   async listSchedules(): Promise<readonly RawSchedule[]> {
     const scheduleDir = path.join(this.#rootDir, SCHEDULE_DIR);
     const names = await listEntries(scheduleDir, (entry) => entry.isFile() && entry.name.endsWith(".json"));
     return Promise.all(
-      names.map(async (fileName) => ({ fileName, content: await readJson(path.join(scheduleDir, fileName)) })),
+      names.map(async (fileName) => ({
+        fileName,
+        location: `${SCHEDULE_DIR}/${fileName}`,
+        content: await readJson(path.join(scheduleDir, fileName)),
+      })),
     );
   }
 
-  async readAttribution(): Promise<string | undefined> {
+  async readAttribution(): Promise<Attribution> {
     try {
-      return await readFile(path.join(this.#rootDir, ATTRIBUTION_FILE), "utf8");
+      const text = await readFile(path.join(this.#rootDir, ATTRIBUTION_FILE), "utf8");
+      return { location: ATTRIBUTION_FILE, text };
     } catch (error) {
       if (isMissingFile(error)) {
-        return undefined;
+        return { location: ATTRIBUTION_FILE, text: undefined };
       }
       throw error;
     }
   }
 }
 
-async function readChallenge(challengeDir: string, directoryName: string): Promise<RawChallenge> {
+async function readChallenge(challengesDir: string, directoryName: string): Promise<RawChallenge> {
+  const challengeDir = path.join(challengesDir, directoryName);
+  const location = `${CHALLENGES_DIR}/${directoryName}`;
   const [metadata, files] = await Promise.all([
     readJson(path.join(challengeDir, METADATA_FILE)),
     listFilesRecursive(challengeDir),
   ]);
-  return { directoryName, metadata, files };
+  return { directoryName, location, metadataLocation: `${location}/${METADATA_FILE}`, metadata, files };
 }
 
 async function listEntries(dir: string, keep: (entry: Dirent) => boolean): Promise<string[]> {

@@ -36,6 +36,8 @@ export interface ChallengeMetadata {
 
 export interface Challenge {
   readonly directoryName: string;
+  /** Where the challenge lives, as reported in issues; supplied by the storage adapter. */
+  readonly location: string;
   readonly metadata: ChallengeMetadata;
   /** Paths relative to the challenge directory, with `/` separators. */
   readonly files: ReadonlySet<string>;
@@ -48,8 +50,15 @@ export interface ScheduleEntry {
 
 export interface Schedule {
   readonly fileName: string;
+  /** Where the schedule lives, as reported in issues; supplied by the storage adapter. */
+  readonly location: string;
   readonly year: number;
   readonly entries: readonly ScheduleEntry[];
+}
+
+export interface Attribution {
+  readonly location: string;
+  readonly text: string | undefined;
 }
 
 export interface Issue {
@@ -58,11 +67,11 @@ export interface Issue {
 }
 
 const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const URL_PATTERN = /https?:\/\/[^\s|<>()[\]]+/g;
 
 /** Checks the rules a single challenge directory must satisfy on its own. */
 export function checkChallenge(challenge: Challenge): Issue[] {
-  const path = `challenges/${challenge.directoryName}`;
-  const { metadata, files } = challenge;
+  const { location: path, metadata, files } = challenge;
   const issues: Issue[] = [];
 
   if (metadata.id !== challenge.directoryName) {
@@ -79,13 +88,13 @@ export function checkChallenge(challenge: Challenge): Issue[] {
   return issues;
 }
 
-/** Checks that every borrowed task is listed in ATTRIBUTION.md by its source URL. */
-export function checkAttribution(challenges: readonly Challenge[], attribution: string | undefined): Issue[] {
-  const text = attribution ?? "";
+/** Checks that every borrowed task is listed in the attribution file by its exact source URL. */
+export function checkAttribution(challenges: readonly Challenge[], attribution: Attribution): Issue[] {
+  const listedUrls = new Set(attribution.text?.match(URL_PATTERN) ?? []);
   return challenges
-    .filter(({ metadata }) => metadata.source !== AUTHORED_SOURCE && !text.includes(metadata.sourceUrl))
+    .filter(({ metadata }) => metadata.source !== AUTHORED_SOURCE && !listedUrls.has(metadata.sourceUrl))
     .map(({ metadata }) => ({
-      path: "ATTRIBUTION.md",
+      path: attribution.location,
       message: `missing attribution for "${metadata.id}" (${metadata.sourceUrl})`,
     }));
 }
@@ -93,18 +102,18 @@ export function checkAttribution(challenges: readonly Challenge[], attribution: 
 /** Checks dates, references and difficulty across all schedule files. */
 export function checkSchedules(schedules: readonly Schedule[], challenges: readonly Challenge[]): Issue[] {
   const metadataById = new Map(challenges.map(({ metadata }) => [metadata.id, metadata]));
-  const scheduledIn = new Map<string, string>();
+  const scheduledIn = new Map<string, Schedule>();
   const issues: Issue[] = [];
 
   for (const schedule of schedules) {
-    const path = `schedule/${schedule.fileName}`;
+    const path = schedule.location;
     for (const entry of schedule.entries) {
       issues.push(...checkScheduleEntry(entry, schedule.year, path, metadataById));
-      const previousFile = scheduledIn.get(entry.date);
-      if (previousFile === undefined) {
-        scheduledIn.set(entry.date, schedule.fileName);
+      const previous = scheduledIn.get(entry.date);
+      if (previous === undefined) {
+        scheduledIn.set(entry.date, schedule);
       } else {
-        issues.push({ path, message: `${entry.date} is already scheduled in schedule/${previousFile}` });
+        issues.push({ path, message: `${entry.date} is already scheduled in ${previous.location}` });
       }
     }
   }

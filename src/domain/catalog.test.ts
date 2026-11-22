@@ -3,6 +3,7 @@ import {
   checkAttribution,
   checkChallenge,
   checkSchedules,
+  type Attribution,
   type Challenge,
   type ChallengeMetadata,
   type Schedule,
@@ -26,11 +27,15 @@ function makeChallenge(
     license: "MIT",
     ...overrides,
   };
-  return { directoryName: metadata.id, metadata, files: new Set(files) };
+  return { directoryName: metadata.id, location: `challenges/${metadata.id}`, metadata, files: new Set(files) };
 }
 
 function makeSchedule(fileName: string, entries: Schedule["entries"]): Schedule {
-  return { fileName, year: Number(fileName.slice(0, 4)), entries };
+  return { fileName, location: `schedule/${fileName}`, year: Number(fileName.slice(0, 4)), entries };
+}
+
+function attributionOf(text: string | undefined): Attribution {
+  return { location: "ATTRIBUTION.md", text };
 }
 
 describe("checkChallenge", () => {
@@ -39,7 +44,7 @@ describe("checkChallenge", () => {
   });
 
   it("rejects metadata id that differs from the directory name", () => {
-    const challenge = { ...makeChallenge(), directoryName: "two-sum-v2" };
+    const challenge = { ...makeChallenge(), directoryName: "two-sum-v2", location: "challenges/two-sum-v2" };
     expect(checkChallenge(challenge)).toEqual([
       { path: "challenges/two-sum-v2", message: 'metadata id "two-sum" does not match the directory name' },
     ]);
@@ -70,7 +75,7 @@ describe("checkChallenge", () => {
 describe("checkAttribution", () => {
   it("requires borrowed tasks to be listed by source URL", () => {
     const challenge = makeChallenge();
-    expect(checkAttribution([challenge], "# Attribution\n")).toEqual([
+    expect(checkAttribution([challenge], attributionOf("# Attribution\n"))).toEqual([
       {
         path: "ATTRIBUTION.md",
         message: `missing attribution for "two-sum" (${challenge.metadata.sourceUrl})`,
@@ -80,11 +85,18 @@ describe("checkAttribution", () => {
 
   it("accepts a borrowed task whose source URL is listed", () => {
     const challenge = makeChallenge();
-    expect(checkAttribution([challenge], `- ${challenge.metadata.sourceUrl}`)).toEqual([]);
+    const table = `| two-sum | ${challenge.metadata.sourceUrl} | MIT |`;
+    expect(checkAttribution([challenge], attributionOf(table))).toEqual([]);
+  });
+
+  it("does not accept a longer URL that merely starts with the source URL", () => {
+    const challenge = makeChallenge({ sourceUrl: "https://example.com/exercises/two-fer" });
+    const table = "| two-fer-advanced | https://example.com/exercises/two-fer-advanced | MIT |";
+    expect(checkAttribution([challenge], attributionOf(table))).toHaveLength(1);
   });
 
   it("does not require attribution for authored tasks, even without ATTRIBUTION.md", () => {
-    expect(checkAttribution([makeChallenge({ source: "original" })], undefined)).toEqual([]);
+    expect(checkAttribution([makeChallenge({ source: "original" })], attributionOf(undefined))).toEqual([]);
   });
 });
 

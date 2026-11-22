@@ -48,19 +48,23 @@ function collect<T>(results: readonly Parsed<T>[]): { values: T[]; issues: Issue
 }
 
 function parseChallenge(raw: RawChallenge): Parsed<Challenge> {
-  const path = `challenges/${raw.directoryName}/metadata.json`;
-  const metadata = parseJson(raw.metadata, metadataSchema, path);
+  const metadata = parseJson(raw.metadata, metadataSchema, raw.metadataLocation);
   if (metadata.kind === "failed") {
     return metadata;
   }
   return {
     kind: "ok",
-    value: { directoryName: raw.directoryName, metadata: metadata.value, files: new Set(raw.files) },
+    value: {
+      directoryName: raw.directoryName,
+      location: raw.location,
+      metadata: metadata.value,
+      files: new Set(raw.files),
+    },
   };
 }
 
 function parseSchedule(raw: RawSchedule): Parsed<Schedule> {
-  const path = `schedule/${raw.fileName}`;
+  const path = raw.location;
   const year = SCHEDULE_FILE_PATTERN.exec(raw.fileName)?.[1];
   if (year === undefined) {
     return { kind: "failed", issues: [{ path, message: "schedule file must be named <YYYY>.json" }] };
@@ -69,7 +73,10 @@ function parseSchedule(raw: RawSchedule): Parsed<Schedule> {
   if (entries.kind === "failed") {
     return entries;
   }
-  return { kind: "ok", value: { fileName: raw.fileName, year: Number(year), entries: entries.value } };
+  return {
+    kind: "ok",
+    value: { fileName: raw.fileName, location: raw.location, year: Number(year), entries: entries.value },
+  };
 }
 
 function parseJson<T>(raw: RawJson, schema: z.ZodType<T>, path: string): Parsed<T> {

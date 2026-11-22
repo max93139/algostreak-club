@@ -18,6 +18,8 @@ const validMetadata = {
 
 const validChallenge: RawChallenge = {
   directoryName: "two-sum",
+  location: "challenges/two-sum",
+  metadataLocation: "challenges/two-sum/metadata.json",
   metadata: { kind: "parsed", value: validMetadata },
   files: ["statement.md", "public.test.ts", "stress.test.ts", "starter/solution.ts"],
 };
@@ -30,7 +32,7 @@ function inMemorySource(
   return {
     listChallenges: () => Promise.resolve(challenges),
     listSchedules: () => Promise.resolve(schedules),
-    readAttribution: () => Promise.resolve(attribution),
+    readAttribution: () => Promise.resolve({ location: "ATTRIBUTION.md", text: attribution }),
   };
 }
 
@@ -38,6 +40,7 @@ describe("validateCatalog", () => {
   it("returns no issues for a valid catalog", async () => {
     const schedule: RawSchedule = {
       fileName: "2026.json",
+      location: "schedule/2026.json",
       content: { kind: "parsed", value: [{ date: "2026-12-01", challengeId: "two-sum" }] },
     };
     await expect(validateCatalog(inMemorySource([validChallenge], [schedule]))).resolves.toEqual([]);
@@ -69,7 +72,7 @@ describe("validateCatalog", () => {
   });
 
   it("rejects a schedule file not named after a year", async () => {
-    const schedule: RawSchedule = { fileName: "december.json", content: { kind: "parsed", value: [] } };
+    const schedule: RawSchedule = { fileName: "december.json", location: "schedule/december.json", content: { kind: "parsed", value: [] } };
     await expect(validateCatalog(inMemorySource([], [schedule]))).resolves.toEqual([
       { path: "schedule/december.json", message: "schedule file must be named <YYYY>.json" },
     ]);
@@ -78,6 +81,7 @@ describe("validateCatalog", () => {
   it("rejects a schedule that is not an array of entries", async () => {
     const schedule: RawSchedule = {
       fileName: "2026.json",
+      location: "schedule/2026.json",
       content: { kind: "parsed", value: { "2026-12-01": "two-sum" } },
     };
     const issues = await validateCatalog(inMemorySource([], [schedule]));
@@ -92,6 +96,7 @@ describe("validateCatalog", () => {
     };
     const schedule: RawSchedule = {
       fileName: "2026.json",
+      location: "schedule/2026.json",
       content: { kind: "parsed", value: [{ date: "2026-12-01", challengeId: "two-sum" }] },
     };
     const issues = await validateCatalog(inMemorySource([challenge], [schedule]));
