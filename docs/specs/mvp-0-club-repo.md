@@ -26,13 +26,14 @@ prs: []
 - [ ] Workflow `check.yml` на `pull_request` визначає папку рішення, дату й `id` задачі та запускає `public.test.ts` і `stress.test.ts` проти `solutions/<user>/<date>-<id>/solution.ts`.
 - [ ] Check падає, якщо PR змінює файли поза `solutions/<автор PR>/` (чужі папки, `challenges/`, `.github/`, `scripts/`), якщо дата в імені папки не збігається з `schedule`, або якщо в PR більше однієї папки рішення.
 - [ ] Стрес-тест: еталонне `O(n)`-рішення вкладається в `timeLimitMs`, а еталонне `O(n²)` перевищує його щонайменше в 10 разів на `ubuntu-latest`; ліміт = ×3–5 від часу еталонного рішення. Перевіряється скриптом калібрування, результат записано в `metadata.json`.
-- [ ] Branch protection на `main`: merge тільки через PR зі зеленим `check`. Учасник мерджить свій PR сам; auto-merge не вмикається.
+- [ ] Branch protection на `main`: merge тільки через PR зі зеленим required status check — саме job `check`, а не весь workflow, щоб пропущене чи червоне рев'ю не блокувало merge. Учасник мерджить свій PR сам; auto-merge не вмикається.
 
 Gemini-рев'ю
-- [ ] Job `review` у `check.yml` запускається тільки після зеленого `check` і робить 1 запит до Gemini Flash (Free Tier) на head SHA PR. Повторний запуск на тому ж SHA новий коментар не створює.
+- [ ] Workflow `review.yml` на `workflow_run` (завершення `check.yml` зі статусом success) робить 1 запит до Gemini Flash (Free Tier) на head SHA PR. Повторний запуск на тому ж SHA новий коментар не створює.
+- [ ] `review.yml` не робить checkout і не виконує код PR: файл рішення й опис PR беруться через GitHub API як дані.
 - [ ] Бот залишає 1 коментар у PR: оцінка Time/Space Big O за кодом, чи відповідає Big O з опису PR коду, 1 конкретна порада.
 - [ ] Рев'ю не блокує merge: помилка API, ліміт або відсутній `GEMINI_API_KEY` пропускають job без падіння `check`.
-- [ ] Workflow використовує тригер `pull_request`, не `pull_request_target`, щоб PR із форків стороннього користувача не отримували секрети.
+- [ ] `check.yml` (тригер `pull_request`) не використовує жодних секретів. Причина: учасники — collaborators і пушать гілки в той самий repo, тому workflow із PR-гілки, включно з новим `.yml`, виконується з доступом до repo-секретів.
 
 Streak
 - [ ] `scripts/streaks.ts` будує `streaks.json` (`current`, `longest`, `total`, `lastSolvedDate` на кожного учасника) з merged PR через GitHub API.
@@ -43,12 +44,13 @@ Streak
 
 Інфраструктура коду
 - [ ] TypeScript, Node.js LTS, Vitest; `npm run typecheck`, `npm run lint`, `npm test` проходять локально й у CI.
-- [ ] Секрети (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GEMINI_API_KEY`) лежать тільки в secrets club-repo; у коді й логах їх немає.
+- [ ] Секрети (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GEMINI_API_KEY`) лежать тільки в GitHub Environment `bot` з deployment branch rule «тільки `main`», а не в repo-level secrets; у коді й логах їх немає. Environment використовують лише `streaks.yml` і `review.yml`, які виконуються з `main`.
+- [ ] Перевірено вручну: тестовий PR-воркфлоу з гілки, що звертається до `secrets.GEMINI_API_KEY`, отримує порожнє значення.
 
 ## Обмеження та рішення
 - Модель довіри — «чесне слово»: тести публічні в межах repo, прихованих тестів і захисту від підміни workflow немає. Свідомо прийнято для MVP 0.
 - Еталонні рішення в repo не комітяться; в `metadata.json` зберігається тільки відкалібрований `timeLimitMs`.
-- Патерн: Clean Architecture — домен (streak, schedule) без залежностей від GitHub API і fs; адаптери окремо.
+- Патерн: Clean Architecture — домен (streak, schedule) без залежностей від GitHub API і fs. Use cases: розбір PR (папка, дата, `id`), підрахунок streak, формування рев'ю й повідомлень — без прямих викликів API. Адаптери: GitHub API (PR, comments, commits), Gemini-клієнт, Telegram-клієнт, fs.
 - Поза скоупом: CLI (`algo today/test/submit`) — окрема спека; персональні repo (Варіант Б, MVP 1); GitHub App, SVG-бейдж (MVP 2); Streak Freeze; Part 2 follow-up.
 - Gemini: перед стартом перевірити актуальну назву моделі Flash, ліміти Free Tier і умови використання даних (Free Tier може використовувати запити для покращення продуктів Google). Код учасника йде в промпт як дані; коментар бота інформаційний, тому prompt injection у коді не впливає на зарахування.
 
