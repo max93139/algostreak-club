@@ -1,0 +1,28 @@
+{
+  "name": "algostreak-club",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Daily algorithm challenge club: one shared problem a day, solved locally and submitted as a PR",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "validate": "node src/cli/validate.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.15.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}
