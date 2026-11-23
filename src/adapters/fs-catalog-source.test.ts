@@ -30,7 +30,7 @@ describe("FsCatalogSource", () => {
 
   it("lists challenge directories with nested files and parsed metadata", async () => {
     await writeRepoFile("challenges/two-sum/metadata.json", '{"id":"two-sum"}');
-    await writeRepoFile("challenges/two-sum/starter/solution.ts", "export {};");
+    await writeRepoFile("challenges/two-sum/starter/solution.js", "export {};");
     await writeRepoFile("challenges/README.md", "# Challenges");
 
     const challenges = await new FsCatalogSource(rootDir).listChallenges();
@@ -41,7 +41,7 @@ describe("FsCatalogSource", () => {
         location: "challenges/two-sum",
         metadataLocation: "challenges/two-sum/metadata.json",
         metadata: { kind: "parsed", value: { id: "two-sum" } },
-        files: ["metadata.json", "starter/solution.ts"],
+        files: ["metadata.json", "starter/solution.js"],
       },
     ]);
   });

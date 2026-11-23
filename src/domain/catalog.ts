@@ -11,9 +11,9 @@ export const CHALLENGE_LICENSE_FILE = "LICENSE";
 
 export const REQUIRED_CHALLENGE_FILES = [
   "statement.md",
-  "public.test.ts",
-  "stress.test.ts",
-  "starter/solution.ts",
+  "public.test.js",
+  "stress.test.js",
+  "starter/solution.js",
 ] as const;
 
 /** MVP 0 runs junior-level tasks only. */

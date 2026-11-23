@@ -9,7 +9,7 @@ import {
   type Schedule,
 } from "./catalog.ts";
 
-const ALL_REQUIRED_FILES = ["statement.md", "public.test.ts", "stress.test.ts", "starter/solution.ts"];
+const ALL_REQUIRED_FILES = ["statement.md", "public.test.js", "stress.test.js", "starter/solution.js"];
 
 function makeChallenge(
   overrides: Partial<ChallengeMetadata> = {},
@@ -53,9 +53,9 @@ describe("checkChallenge", () => {
   it("reports every missing required file", () => {
     const issues = checkChallenge(makeChallenge({}, ["statement.md"]));
     expect(issues.map((issue) => issue.message)).toEqual([
-      "missing public.test.ts",
-      "missing stress.test.ts",
-      "missing starter/solution.ts",
+      "missing public.test.js",
+      "missing stress.test.js",
+      "missing starter/solution.js",
     ]);
   });
 

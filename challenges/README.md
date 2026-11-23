@@ -1,15 +1,15 @@
 # Challenges
 
-One directory per task, named after its `id` (kebab-case):
+One directory per task, named after its `id` (kebab-case). Starters and tests are plain JavaScript ES modules:
 
 ```text
 challenges/<id>/
 ├── statement.md
 ├── metadata.json
-├── public.test.ts
-├── stress.test.ts
+├── public.test.js
+├── stress.test.js
 ├── starter/
-│   └── solution.ts
+│   └── solution.js
 └── LICENSE            # required only for CC-BY-NC-SA-4.0 tasks
 ```
 

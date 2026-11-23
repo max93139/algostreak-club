@@ -21,7 +21,7 @@ const validChallenge: RawChallenge = {
   location: "challenges/two-sum",
   metadataLocation: "challenges/two-sum/metadata.json",
   metadata: { kind: "parsed", value: validMetadata },
-  files: ["statement.md", "public.test.ts", "stress.test.ts", "starter/solution.ts"],
+  files: ["statement.md", "public.test.js", "stress.test.js", "starter/solution.js"],
 };
 
 function inMemorySource(
